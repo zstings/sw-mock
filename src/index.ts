@@ -1,5 +1,5 @@
 type HandlerCallback = (req: any, res: ResponseActions) => Promise<void> | void;
-
+type ResponseConfig = { status?: number };
 class ResponseActions {
   private _headers: Record<string, string> = { 'Content-Type': 'application/json' };
   private _status: number = 200;
@@ -21,20 +21,24 @@ class ResponseActions {
     return this;
   };
   // 配置 JSON 响应
-  json = async (data: Record<string, any>, config: { status: number } = { status: 200 }) => {
+  json = async (data: Record<string, any>, config?: ResponseConfig) => {
     if (!this._tryLock()) return;
-    if (config && typeof config.status === 'number') this._status = config.status;
+    this._sendStatus(config);
     this._headers['Content-Type'] = 'application/json';
     await this._send(data);
   };
   // 配置文本响应
-  text = async (content: string, config: { status: number } = { status: 200 }) => {
+  text = async (content: string, config?: ResponseConfig) => {
     if (!this._tryLock()) return;
-    if (config && typeof config.status === 'number') this._status = config.status;
+    this._sendStatus(config);
     this._headers['Content-Type'] = 'text/plain';
     await this._send(content);
   };
-  // 1. 统一的锁：尝试锁定发送状态
+  // 统一判断是否设置发送状态码
+  private _sendStatus = (config?: ResponseConfig) => {
+    if (config && typeof config.status === 'number') this._status = config.status;
+  };
+  // 统一的锁：尝试锁定发送状态
   // 返回 true 表示锁定成功（可以发送），false 表示已经发送过
   private _tryLock = (): boolean => {
     if (this._isSent) return false;

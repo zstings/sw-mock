@@ -30,7 +30,7 @@ async function init() {
     // 3. 执行复制
     fs.copyFileSync(sourcePath, destFile);
 
-    console.log(`\x1b[32m%s\x1b[0m`, `✔ 成功！已将 swMockWorker.js 复制到 ${targetDir}/`);
+    console.log(`\x1b[32m%s\x1b[0m`, `✔ 成功！已将 swMockWorker.js 复制到 ${targetDir}`);
     console.log(`\x1b[34m%s\x1b[0m`, `提示: 请确保 httpRequest.init() 调用结束。`);
   } catch (err: any) {
     console.error(`\x1b[31m%s\x1b[0m`, `错误: 无法创建文件，请检查权限或路径。`, err.message);
