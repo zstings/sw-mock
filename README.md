@@ -14,6 +14,8 @@
 
 ```sh
 npm install mocksw -D
+# or
+npm install mocksw -D
 ```
 
 ## 🚀 快速开始
@@ -24,6 +26,8 @@ npm install mocksw -D
 
 ```sh
 npx mocksw init public
+# or
+pnpm exec mocksw init public
 ```
 
 这将在你的公共目录下生成 `swMockWorker.js` worker环境。
@@ -63,7 +67,20 @@ httpRequest.init('www.vadmin.test.com').then(() => {
   console.log('🚀 完美 Mock 环境已就绪');
   // 挂载 Vue 实例 推荐在 init 后挂载
   app.mount('#app');
+  // 现在这个接口调用会被拦截 并返回模拟响应
+  login();
 });
+
+function login() {
+  axios
+    .post('http://www.vadmin.test.com/user/login', {
+      username: 'admin',
+      password: '123456',
+    })
+    .then(res => {
+      console.log(res.data);
+    });
+}
 ```
 
 启动项目，即可在浏览器中使用 Mock API。
@@ -87,6 +104,7 @@ httpRequest.init('www.vadmin.test.com').then(() => {
 - `query`：URL 查询参数对象
 - `headers`：原生请求头
 - `method`：请求方法（如 GET、POST 等）
+- `headers`：原生请求头
 
 `MockResponse` (回调第二个参数)
 
