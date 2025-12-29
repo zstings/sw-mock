@@ -101,16 +101,14 @@ class MockClient {
     // 监听来自 SW 的请求信号
     navigator.serviceWorker.addEventListener('message', async event => {
       if (event.data.type === 'MSW_SIMULATE_REQUEST') {
-        const { method, url, body, query } = event.data;
+        const { method, url } = event.data.data;
         const port = event.ports[0];
         const handlerKey = `${method}:${url}`;
         const handler = this.handlers.get(handlerKey);
         if (!port) return;
         if (handler) {
           const res = new ResponseActions(port);
-          // 这里的 req 包含了请求的所有元数据
-          const req = { url, method, body, query };
-          await handler(req, res);
+          await handler(Object.assign({}, event.data.data), res);
         } else {
           // 如果没找到对应的 Mock，也得给 SW 一个反馈，否则就挂起了
           port.postMessage({ body: { error: 'Not Found' }, status: 404 });

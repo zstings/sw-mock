@@ -25,7 +25,6 @@ self.addEventListener('fetch', event => {
             status: status || 200,
             headers: {
               'Content-Type': 'application/json',
-              'Content-Length': 100000, // 显式设置大小
               ...headers,
             },
           }),
@@ -37,10 +36,13 @@ self.addEventListener('fetch', event => {
         allClients[0].postMessage(
           {
             type: 'MSW_SIMULATE_REQUEST',
-            url: url.pathname,
-            method: event.request.method,
-            body: requestBody,
-            query: Object.fromEntries(url.searchParams.entries()),
+            data: {
+              url: url.pathname,
+              method: event.request.method,
+              body: requestBody,
+              query: Object.fromEntries(url.searchParams.entries()),
+              headers: Object.fromEntries(event.request.headers.entries()),
+            },
           },
           [channel.port2],
         );
