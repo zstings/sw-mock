@@ -20,9 +20,9 @@ npm install mocksw -D
 
 ## 🚀 快速开始
 
-### 1. 初始化
+### 1. 初始化 Worker 环境
 
-在你的项目根目录下运行初始化命令（通常是 public 文件夹）：
+在你的项目根目录下运行初始化命令：
 
 ```sh
 npx mocksw init public
@@ -30,16 +30,15 @@ npx mocksw init public
 pnpm exec mocksw init public
 ```
 
-这将在你的公共目录下生成 `swMockWorker.js` worker环境。
+这将在指定的目录 `public` 下生成 `swMockWorker.js` worker环境。
 
-### 2. 注册拦截接口
+### 2. 定义 Mock 接口
 
 在你的应用入口文件（如 `main.ts` 或 `index.ts`）中进行配置：
 
 ```js
 import { httpRequest } from 'mocksw';
-
-// 定义 Mock 接口
+// 定义简单的 Mock 接口
 httpRequest.post('/api/user/login', async ({ body }, res) => {
   const { username, password } = body;
   // 模拟延迟 1000ms
@@ -55,18 +54,10 @@ httpRequest.post('/api/user/login', async ({ body }, res) => {
     msg: 'success',
   });
 });
-```
-
-### 3. 在项目入口文件中引入初始化
-
-在项目入口文件（如 `main.js`）中引入 Service Worker：
-
-```js
-// 初始化 Mock 环境 指定域名进行拦截 推荐在 Vue 实例挂载后初始化
-httpRequest.init('www.vadmin.test.com').then(() => {
-  console.log('🚀 完美 Mock 环境已就绪');
-  // 挂载 Vue 实例 推荐在 init 后挂载
-  app.mount('#app');
+// 初始化并指定拦截域名
+httpRequest.init('www.api-server.com').then(() => {
+  console.log('🚀 Mock 环境已就绪');
+  app.mount('#app'); // 建议在 init 成功后挂载应用
   // 现在这个接口调用会被拦截 并返回模拟响应
   login();
 });
@@ -82,8 +73,6 @@ function login() {
     });
 }
 ```
-
-启动项目，即可在浏览器中使用 Mock API。
 
 ## 📖 API 说明
 
@@ -113,15 +102,55 @@ function login() {
 - `delay(ms)`：延迟响应指定毫秒数 支持链式调用
 - `status(code)`：设置 HTTP 状态码（默认 200）支持链式调用
 
-## 🛠️ 高阶用法：结合 Dexie 模拟数据库
+## 🛠️ 结合web数据库模拟真实后端
 
 由于拦截器运行在主线程环境，你可以轻松结合 IndexedDB 进行增删改查：
 
 ```ts
-import Dexie from 'dexie';
-httpRequest.get('/api/users', async (req, res) => {
-  const db = new Dexie('MyDatabase');
-  const users = await db.table('users').toArray();
-  return res.json(users);
+// 登录接口
+httpRequest.post('/user/login', async (req, res) => {
+  // 获取请求体中的用户名和密码
+  const { username, password } = req.body;
+  // 从数据库中查询用户
+  const user = await db.users.where({ name: username, password: password }).first();
+  // 如果用户不存在 则返回错误响应
+  if (!user) return res.json({ code: 500, message: '账号或密码不匹配' });
+  // 生成 token 并存储到数据库
+  const createToken = 'tk_' + Date.now();
+  if (user) {
+    user.token = createToken;
+    await db.users.update(user.id, user);
+    await db.tokens.add({ token: createToken });
+    // 登录成功后返回 token
+    return res.json({ code: 200, data: { token: createToken } });
+  }
 });
+// 获取用户信息接口
+httpRequest.get('/user/getInfo', async (req, res) => {
+  const token = getHeadersToken(req);
+  if (!token) return res.json({ code: 500, message: '未登录' });
+  const tokenInfo = await db.tokens.where({ token: token }).first();
+  if (!tokenInfo) return res.json({ code: 500, message: 'token 无效' });
+  const user = await db.users.where({ token: token }).first();
+  if (!user) return res.json({ code: 500, message: '用户不存在' });
+  // 模拟延迟 500ms
+  return res.delay(500).json({ code: 200, data: Object.assign({}, user, { token: undefined }) });
+});
+// 登出接口
+httpRequest.post('/user/logout', async (req, res) => {
+  const token = getHeadersToken(req);
+  if (token) {
+    await db.tokens.where({ token }).delete();
+    const user = await db.users.where({ token }).first();
+    if (!user) return res.json({ code: 500, message: '用户不存在' });
+    user.token = '';
+    await db.users.update(user.id, user);
+  }
+  return res.json({ code: 200, message: '登出成功' });
+});
+
+function getHeadersToken(req) {
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  return authHeader?.replace('Bearer ', '');
+}
 ```
