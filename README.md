@@ -1,5 +1,8 @@
 # mocksw
 
+[![npm version](https://img.shields.io/npm/v/mocksw.svg)](https://www.npmjs.com/package/mocksw)
+[![license](https://img.shields.io/github/license/zstings/mocksw.svg)](LICENSE)
+
 一个基于 Service Worker 的轻量级、零侵入 API 模拟工具。通过在 Service Worker 层拦截 fetch 请求，实现在本地开发环境中快速模拟 API 响应。
 
 ## ✨ 特性
